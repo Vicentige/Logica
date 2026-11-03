@@ -10,17 +10,23 @@
 %       -buscar una jugada segura, en la cual el siguiente movimiento del PLAYER NO gane. 
 %============================================================================================
 
-%Regla número 1: Si se puede ganar en este turno, se coloca la ficha en esa columna.
+%Regla número 1: Si se puede ganar en este turno, se coloca la ficha en esa columna.("atacar")
 ai_move(Player, Board, Column) :-
-    buscar_jugda_ganadora(Board, Player, Column), !.
+    buscar_jugada_ganadora(Board, Player, Column), !.
 
-%Regla número 2: Si la regla 1 falló, se revisa si el rival puede ganar, en caso de ser así se bloquea.
+%Regla número 2: Si la regla 1 falló, se revisa si el rival puede ganar, en caso de ser así se bloquea.("defender/bloquear")
 ai_move(Player, Board, Column) :-
-    oponente(Player, Board, Column), !.
+    oponente(Player, Oponente),
+    buscar_jugada_ganadora(Board, Oponente, Column), !.
 
-%Regla número 3: Si ninguna de las reglas anteriores se cumplió, se juega una jugada "segura".
+%Regla número 3: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
 ai_move(Player, Board, Column) :-
-     jugada_segura(Player, Oponente, Board, Column), !.
+    oponente(Player, Oponente),
+    jugada_segura(Player, Oponente, Board, Column), !.
+
+% Regla 4 Respaldo : Si no hay jugada segura, juega en cualquier columna válida
+ai_move(_, Board, Column) :-
+    can_play(Column, Board, _), !.
 
 
 %Relación para alternar turnos entre jugadores.
@@ -46,9 +52,16 @@ can_play(Column, Board, Fila) :-
     Fila is Height + 1.
 
 
-%"nombre" consulta que ficha hay en la cordenada (Column, Fila)
-nombre(Board, Column, Fila, Tokens) :-
-    nth1(Column, Board, Token),
+
+% ficha_en consulta que ficha ("x","o")hay en la cordenada (Column, Fila), 
+ficha_en(Board, Column, Fila, Ficha) :-
+    Column >= 1, Column =< 7,
+    Fila >= 1, Fila =< 6,
+    nth1(Column, Board, ColumnaFichas),
+    length(ColumnaFichas, Height),
+    Fila =< Height,
+    Indice is Height - Fila,
+    nth0(Indice, ColumnaFichas, Ficha).%nth0 busca el elemento en el numero(indice) de la lista columna con elementos Ficha
 
 
   
