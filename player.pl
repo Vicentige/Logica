@@ -53,7 +53,7 @@ can_play(Column, Board, Fila) :-
 
 
 
-% ficha_en consulta que ficha ("x","o")hay en la cordenada (Column, Fila), 
+% ficha_en consulta que ficha ("X","O")hay en la cordenada (Column, Fila), 
 ficha_en(Board, Column, Fila, Ficha) :-
     Column >= 1, Column =< 7,
     Fila >= 1, Fila =< 6,
@@ -64,4 +64,72 @@ ficha_en(Board, Column, Fila, Ficha) :-
     nth0(Indice, ColumnaFichas, Ficha).%nth0 busca el elemento en el numero(indice) de la lista columna con elementos Ficha
 
 
-  
+%============================================================================================
+% 3. DETECCIÓN DE 4 EN LÍNEA (JUGADA GANADORA)
+%    Verifica si colocando Ficha en (Column, Fila) se completan 4 consecutivas.
+%============================================================================================
+
+% Prueba columnas válidas en orden de prioridad hasta hallar una que complete 4 en línea.
+buscar_jugada_ganadora(Board, Ficha, Column) :-
+    can_play(Column, Board, Fila),
+
+    conecta_cuatro(Board, Column, Fila, Ficha).
+    % Verifica si la ficha recién puesta en (Col, Fila) forma 4 en alguna de las 4 direcciones.
+
+% 1. Horizontal: izquierda [-1, 0] y derecha [1, 0]
+conecta_cuatro(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, 0, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, 0, Ficha, C2),
+    C1 + C2 >= 3, !.
+
+% 2. Vertical: hacia abajo [0, -1] (hacia arriba aún no hay fichas)
+conecta_cuatro(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, 0, -1, Ficha, C),
+    C >= 3, !.
+
+% 3. Diagonal Ascendente: abajo-izq [-1, -1] y arriba-der [1, 1]
+conecta_cuatro(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, -1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1,  1, Ficha, C2),
+    C1 + C2 >= 3, !.
+
+% 4. Diagonal Descendente (\): arriba-izq [-1, 1] y abajo-der [1, -1]    
+conecta_cuatro(Board, Col, Fila, Ficha) :-   
+    contar_rayo(Board, Col, Fila, -1,  1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, -1, Ficha, C2),
+    C1 + C2 >= 3, !.
+
+
+% Va paso a paso en la dirección (Dx, Dy) contando fichas iguales consecutivas.
+contar_rayo(Board, Col, Fila, Dx, Dy, Ficha, Cantidad) :-
+    SiguienteCol is Col + Dx,
+    SiguienteFila is Fila + Dy,
+    ficha_en(Board, SiguienteCol, SiguienteFila, Ficha), !,
+    contar_rayo(Board, SiguienteCol, SiguienteFila, Dx, Dy, Ficha, Resto),
+    Cantidad is Resto + 1.
+contar_rayo(_, _, _, _, _, _, 0).
+
+
+%============================================================================================
+% 4. JUGADAS SEGURAS (EVITAR REGALAR LA VICTORIA AL RIVAL)
+%    Una jugada es segura si el rival NO puede ganar jugando encima de nuestra ficha.
+%============================================================================================
+
+%Regla encargada de encontrar una columna en la cual se pueda colocar una ficha y que el rival
+%no gane en el siguiente turno.
+
+jugada_segura(Player, Oponente, Board, Column):-
+    can_play(Column, Board, Fila), es_segura(Board, Column, Fila, Player, Oponente).
+
+% Caso 1: Si nuestra ficha cae en la fila 6 (tope del "tablero"), la columna se llenó (no hay peligro arriba).
+es_segura(_, _, 6, _, _) :- !.
+% Caso 2: Si cae en una fila menor, comprobamos que el rival NO gane en la fila inmediatamente superior.
+es_segura(Board, Col, Fila, Player, Oponente) :-
+    FilaArriba is Fila + 1,
+    simular_jugada(Board, Col, Player, TableroSimulado),
+    \+ conecta_cuatro(TableroSimulado, Col, FilaArriba, Oponente).
+
+% Inserta "imaginariamente" una ficha a la cabeza de la columna elegida.
+simular_jugada(Board, Col, Ficha, NuevoTablero) :-
+    nth1(Col, Board, ColumnaVieja, RestoTablero),
+    nth1(Col, NuevoTablero, [Ficha | ColumnaVieja], RestoTablero).
