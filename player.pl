@@ -19,12 +19,17 @@ ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     buscar_jugada_ganadora(Board, Oponente, Column), !.
 
-%Regla número 3: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
+%Regla número 3: Crear trampa, buscando armar un 3 en linea seguro
+ai_move(Player, Board, Column) :-
+    oponente(Player, Oponente),
+    crear_trampa(Player, Oponente, Board, Column), !.
+
+%Regla número 4: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     jugada_segura(Player, Oponente, Board, Column), !.
 
-% Regla 4 Respaldo : Si no hay jugada segura, juega en cualquier columna válida
+% Regla número 5 (Respaldo) : Si no hay jugada segura, juega en cualquier columna válida
 ai_move(_, Board, Column) :-
     can_play(Column, Board, _), !.
 
@@ -133,3 +138,39 @@ es_segura(Board, Col, Fila, Player, Oponente) :-
 simular_jugada(Board, Col, Ficha, NuevoTablero) :-
     nth1(Col, Board, ColumnaVieja, RestoTablero),
     nth1(Col, NuevoTablero, [Ficha | ColumnaVieja], RestoTablero).
+
+%=========================================================================================================================================
+% 5. Deteccion de 3 en linea(Crear amenaza para lograr la victoria)
+%    Buscamos crear un 3 en linea para que el rival necesite 2 turnos para bloquearnos y asi nosotros poder ganar en el siguiente turno.
+%=========================================================================================================================================
+
+% 1. Horizontal: izquierda(<-) [-1, 0] y derecha(->) [1, 0]
+conecta_tres(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, 0, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, 0, Ficha, C2),
+    C1 + C2 >= 2, !.
+
+% 2. Vertical: hacia abajo [0, -1] (hacia arriba aún no hay fichas)
+conecta_tres(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, 0, -1, Ficha, C),
+    C >= 2, !.
+
+% 3. Diagonal Ascendente("/"): abajo-izq [-1, -1] y arriba-der [1, 1]
+conecta_tres(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, -1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1,  1, Ficha, C2),
+    C1 + C2 >= 2, !.
+
+% 4. Diagonal Descendente (\): arriba-izq [-1, 1] y abajo-der [1, -1]    
+conecta_tres(Board, Col, Fila, Ficha) :-   
+    contar_rayo(Board, Col, Fila, -1,  1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, -1, Ficha, C2),
+    C1 + C2 >= 2, !.
+%buscamos una columna que arme 3 en linea y que sea segura, es decir que el oponente no pueda ganar en la siguiente jugada.
+crear_trampa(Player, Oponente, Board, Column) :-
+    can_play(Column, Board, Fila),
+    es_segura(Board, Column, Fila, Player, Oponente),
+    conecta_tres(Board, Column, Fila, Player).
+
+
+
