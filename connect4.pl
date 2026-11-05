@@ -14,6 +14,7 @@ dconf(delay(0)).          % Extend the response time of atomatic players
 dconf(difficulty(h)).     % set random player difficulty (e: easy, n:normal, h:hard)
 dconf(p_mode(x, auto)).   % use user(auto/rand) to ask a human(an AI/random) player
 %dconf(p_mode(o, auto)).   % use user(auto/rand) to ask a human(an AI/random) player
+dconf(p_mode(o, auto)).   % use user(auto/rand) to ask a human(an AI/random) player
 dconf(manual_check(n)).   % use n(y) to (not) allow manual invalid moves
 dconf(pout(n)).           % use y(n) to (not) save match results in matches.csv
 dconf(show(y)).           % use y(n) to (not) show the board and midgame messages
