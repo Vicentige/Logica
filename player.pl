@@ -10,26 +10,36 @@
 %       -buscar una jugada segura, en la cual el siguiente movimiento del PLAYER NO gane. 
 %============================================================================================
 
-%Regla número 1: Si se puede ganar en este turno, se coloca la ficha en esa columna.("atacar")
+%Regla 1: Si se puede ganar en este turno, se coloca la ficha en esa columna.("atacar")
 ai_move(Player, Board, Column) :-
     buscar_jugada_ganadora(Board, Player, Column), !.
 
-%Regla número 2: Si la regla 1 falló, se revisa si el rival puede ganar, en caso de ser así se bloquea.("defender/bloquear")
+%Regla 2: Si la regla 1 falló, se revisa si el rival puede ganar, en caso de ser así se bloquea.("defender/bloquear")
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     buscar_jugada_ganadora(Board, Oponente, Column), !.
 
-%Regla número 3: Crear trampa, buscando armar un 3 en linea seguro
+%Regla 3: Crear trampa, buscando armar un 3 en linea seguro
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     crear_trampa(Player, Oponente, Board, Column), !.
 
-%Regla número 4: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
+% Regla 4: Si el rival va a armar un 3 en línea, se lo tapo (defensa preventiva)
+ai_move(Player, Board, Column) :-
+    oponente(Player, Oponente),
+    bloquear_trampa(Player, Oponente, Board, Column), !.
+
+% 5. ¿Puedo armar una pareja de 2 fichas juntas? (AQUÍ ENTRA ESTA REGLA)
+ai_move(Player, Board, Column) :-
+    oponente(Player, Oponente),
+    crear_pareja(Player, Oponente, Board, Column), !.
+
+%Regla 4: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     jugada_segura(Player, Oponente, Board, Column), !.
 
-% Regla número 5 (Respaldo) : Si no hay jugada segura, juega en cualquier columna válida
+% Regla 5 (Respaldo) : Si no hay jugada segura, juega en cualquier columna válida
 ai_move(_, Board, Column) :-
     can_play(Column, Board, _), !.
 
@@ -67,7 +77,6 @@ ficha_en(Board, Column, Fila, Ficha) :-
     Fila =< Height,
     Indice is Height - Fila,
     nth0(Indice, ColumnaFichas, Ficha).%nth0 busca el elemento en el numero(indice) de la lista columna con elementos Ficha
-
 
 %============================================================================================
 % 3. DETECCIÓN DE 4 EN LÍNEA (JUGADA GANADORA)
@@ -150,27 +159,54 @@ conecta_tres(Board, Col, Fila, Ficha) :-
     contar_rayo(Board, Col, Fila,  1, 0, Ficha, C2),
     C1 + C2 >= 2, !.
 
-% 2. Vertical: hacia abajo [0, -1] (hacia arriba aún no hay fichas)
-conecta_tres(Board, Col, Fila, Ficha) :-
-    contar_rayo(Board, Col, Fila, 0, -1, Ficha, C),
-    C >= 2, !.
-
-% 3. Diagonal Ascendente("/"): abajo-izq [-1, -1] y arriba-der [1, 1]
+% 2. Diagonal Ascendente("/"): abajo-izq [-1, -1] y arriba-der [1, 1]
 conecta_tres(Board, Col, Fila, Ficha) :-
     contar_rayo(Board, Col, Fila, -1, -1, Ficha, C1),
     contar_rayo(Board, Col, Fila,  1,  1, Ficha, C2),
     C1 + C2 >= 2, !.
 
-% 4. Diagonal Descendente (\): arriba-izq [-1, 1] y abajo-der [1, -1]    
+% 3. Diagonal Descendente (\): arriba-izq [-1, 1] y abajo-der [1, -1]    
 conecta_tres(Board, Col, Fila, Ficha) :-   
     contar_rayo(Board, Col, Fila, -1,  1, Ficha, C1),
     contar_rayo(Board, Col, Fila,  1, -1, Ficha, C2),
     C1 + C2 >= 2, !.
+
 %buscamos una columna que arme 3 en linea y que sea segura, es decir que el oponente no pueda ganar en la siguiente jugada.
 crear_trampa(Player, Oponente, Board, Column) :-
     can_play(Column, Board, Fila),
     es_segura(Board, Column, Fila, Player, Oponente),
     conecta_tres(Board, Column, Fila, Player).
 
+% bloquear para que el oponente no forme un 3 en línea
+bloquear_trampa(Player, Oponente, Board, Column) :-
+    can_play(Column, Board, Fila),
+    es_segura(Board, Column, Fila, Player, Oponente),
+    conecta_tres(Board, Column, Fila, Oponente).
+
+
+%================================================================
+% 5. Deteccion de 2 en linea
+%    Buscamos crear 2 en linea para construir jugadas futuras
+%================================================================
+
+crear_pareja(Player, Oponente, Board, Column) :-
+    can_play(Column, Board, Fila),
+    es_segura(Board, Column, Fila, Player, Oponente),
+    conecta_dos(Board, Column, Fila, Player).
+% 1. Horizontal
+conecta_dos(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, 0, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, 0, Ficha, C2),
+    C1 + C2 >= 1, !.
+% 2. Diagonal Ascendente
+conecta_dos(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1, -1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1,  1, Ficha, C2),
+    C1 + C2 >= 1, !.
+% 3. Diagonal Descendente
+conecta_dos(Board, Col, Fila, Ficha) :-
+    contar_rayo(Board, Col, Fila, -1,  1, Ficha, C1),
+    contar_rayo(Board, Col, Fila,  1, -1, Ficha, C2),
+    C1 + C2 >= 1, !.
 
 
