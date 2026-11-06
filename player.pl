@@ -29,17 +29,17 @@ ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     bloquear_trampa(Player, Oponente, Board, Column), !.
 
-% 5. ¿Puedo armar una pareja de 2 fichas juntas? (AQUÍ ENTRA ESTA REGLA)
+% Regla 5: ¿Puedo armar una pareja de 2 fichas juntas? (AQUÍ ENTRA ESTA REGLA)
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     crear_pareja(Player, Oponente, Board, Column), !.
 
-%Regla 4: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
+%Regla 6: Si ninguna de las reglas anteriores se cumplió, se juega una jugada segura.("estrategia")
 ai_move(Player, Board, Column) :-
     oponente(Player, Oponente),
     jugada_segura(Player, Oponente, Board, Column), !.
 
-% Regla 5 (Respaldo) : Si no hay jugada segura, juega en cualquier columna válida
+% Regla 7: (Respaldo) : Si no hay jugada segura, juega en cualquier columna válida
 ai_move(_, Board, Column) :-
     can_play(Column, Board, _), !.
 
@@ -129,14 +129,13 @@ contar_rayo(_, _, _, _, _, _, 0).
 %    Una jugada es segura si el rival NO puede ganar jugando encima de nuestra ficha.
 %============================================================================================
 
-%Regla encargada de encontrar una columna en la cual se pueda colocar una ficha y que el rival
-%no gane en el siguiente turno.
-
+%Regla encargada de encontrar una columna en la cual se pueda colocar una ficha y que el rival no gane en el siguiente turno.
 jugada_segura(Player, Oponente, Board, Column):-
     can_play(Column, Board, Fila), es_segura(Board, Column, Fila, Player, Oponente).
 
 % Caso 1: Si nuestra ficha cae en la fila 6 (tope del "tablero"), la columna se llenó (no hay peligro arriba).
 es_segura(_, _, 6, _, _) :- !.
+
 % Caso 2: Si cae en una fila menor, comprobamos que el rival NO gane en la fila inmediatamente superior.
 es_segura(Board, Col, Fila, Player, Oponente) :-
     FilaArriba is Fila + 1,
@@ -189,24 +188,26 @@ bloquear_trampa(Player, Oponente, Board, Column) :-
 %    Buscamos crear 2 en linea para construir jugadas futuras
 %================================================================
 
+% busca crear una pareja de fichas y que sea segura para poder ir construyendo jugadas futuras.
 crear_pareja(Player, Oponente, Board, Column) :-
     can_play(Column, Board, Fila),
     es_segura(Board, Column, Fila, Player, Oponente),
     conecta_dos(Board, Column, Fila, Player).
-% 1. Horizontal
+
+% 1. Revisión horizontal: revisa si puede formar una pareja de fichas en horizontal (izquierda y derecha)
 conecta_dos(Board, Col, Fila, Ficha) :-
     contar_rayo(Board, Col, Fila, -1, 0, Ficha, C1),
     contar_rayo(Board, Col, Fila,  1, 0, Ficha, C2),
     C1 + C2 >= 1, !.
-% 2. Diagonal Ascendente
+
+% 2. Diagonal Ascendente: revisa si puede formar una pareja de fichas en diagonal acendente (abajo-izq y arriba-der)
 conecta_dos(Board, Col, Fila, Ficha) :-
     contar_rayo(Board, Col, Fila, -1, -1, Ficha, C1),
     contar_rayo(Board, Col, Fila,  1,  1, Ficha, C2),
     C1 + C2 >= 1, !.
-% 3. Diagonal Descendente
+    
+% 3. Diagonal Descendente: revisa si puede formar una pareja de fichas en diagonal descendente (arriba-izq y abajo-der)
 conecta_dos(Board, Col, Fila, Ficha) :-
     contar_rayo(Board, Col, Fila, -1,  1, Ficha, C1),
     contar_rayo(Board, Col, Fila,  1, -1, Ficha, C2),
     C1 + C2 >= 1, !.
-
-
